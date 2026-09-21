@@ -30,20 +30,24 @@ class Backup extends Base {
 						'mutateAndGetPayload' => function ($input) {
 							//lets run the  restore command 'backupfilename'
 							$filename = $input['backupfilename'];
-							if(file_exists($filename)) {
-								$command = "fwconsole backup --restore $filename --skiprestorehooks";
-								$process = new Process($command);
-								try {
-									$process->setTimeout(null);
-									$process->mustRun();
-									$out = $process->getOutput();
-									return ['restorestatus' =>'Restore Done'];
-								} catch (ProcessFailedException $e) {
-									return ['restorestatus' =>'Restore Errored'];
-								}
+							if (!$this->isValidRestorePath($filename) || !is_file($filename)) {
+								return ['restorestatus' => _('Backup file not found or invalid path')];
 							}
-
-							return ['restorestatus' =>'Backup file not found'];
+							$process = new Process(array(
+								'/usr/sbin/fwconsole',
+								'backup',
+								'--restore',
+								$filename,
+								'--skiprestorehooks',
+							));
+							try {
+								$process->setTimeout(null);
+								$process->mustRun();
+								$out = $process->getOutput();
+								return ['restorestatus' =>'Restore Done'];
+							} catch (ProcessFailedException $e) {
+								return ['restorestatus' =>'Restore Errored'];
+							}
 						}
 					]),
 					'addBackup' => Relay::mutationWithClientMutationId([
@@ -605,6 +609,9 @@ class Backup extends Base {
 	 */
 	private function restoreBackup($input){
 		$filename = $input['name'];
+		if (!$this->isValidRestorePath($filename) || !is_file($filename)) {
+			return ['message' => _('Backup file not found or invalid path'), 'status' => false];
+		}
 		$txnId = $this->freepbx->api->addTransaction("Processing","restore","perform-restore");
 		$res = \FreePBX::Sysadmin()->ApiHooks()->runModuleSystemHook('backup','perform-restore',array($filename,$txnId));
 		if($res){
@@ -612,6 +619,20 @@ class Backup extends Base {
 		}else{
 			return ['message' => _('Sorry failed to perform restore'),'status' => false];
 		}
+	}
+
+	/**
+	 * Restore paths may be passed to fwconsole. Reject empty values,
+	 * traversal, and anything outside a filename allowlist.
+	 *
+	 * @param mixed $path
+	 * @return bool
+	 */
+	private function isValidRestorePath($path) {
+		if (!is_string($path) || $path === '' || strpos($path, '..') !== false) {
+			return false;
+		}
+		return (bool) preg_match('/^[a-zA-Z0-9\/_.@+=:-]+$/', $path);
 	}
 
 	/**

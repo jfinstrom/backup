@@ -250,15 +250,19 @@ class BackupGqlApiTest extends ApiBaseTestCase {
 
     self::$freepbx->sysadmin()->setRunHook($mockHelper);  
 
+    $filename = '/tmp/freepbx-backup-restore-test.tar.gz';
+    touch($filename);
+
     $response = $this->request("mutation{
       restoreBackup(input : {
-          name: \"testbackup\"
+          name: \"/tmp/freepbx-backup-restore-test.tar.gz\"
        }){
         status message
        }
     }");
       
    $json = (string)$response->getBody();
+   @unlink($filename);
    $this->assertEquals('{"errors":[{"message":"Sorry failed to perform restore","status":false}]}',$json);
       
    $this->assertEquals(400, $response->getStatusCode());
@@ -281,15 +285,19 @@ class BackupGqlApiTest extends ApiBaseTestCase {
 
     self::$freepbx->sysadmin()->setRunHook($mockHelper);  
 
+    $filename = '/tmp/freepbx-backup-restore-test.tar.gz';
+    touch($filename);
+
     $response = $this->request("mutation{
       restoreBackup(input : {
-          name: \"testbackup\"
+          name: \"/tmp/freepbx-backup-restore-test.tar.gz\"
        }){
         status message
        }
     }");
       
    $json = (string)$response->getBody();
+   @unlink($filename);
    $this->assertEquals('{"data":{"restoreBackup":{"status":true,"message":"Restore process has been initiated. Kindly check the fetchApiStatus api with the transaction id."}}}',$json);
       
    $this->assertEquals(200, $response->getStatusCode());

@@ -5,6 +5,7 @@ use SplFileInfo;
 use splitbrain\PHPArchive\Tar;
 use function FreePBX\modules\Backup\Json\json_decode;
 use function FreePBX\modules\Backup\Json\json_encode;
+use function FreePBX\modules\Backup\Json\safe_unserialize;
 
 /**
  * Used to read information about a backup file
@@ -58,15 +59,17 @@ class BackupSplFileInfo extends SplFileInfo{
 		}
 		if(file_exists($manafestfile)){
 			$manifestdata = file_get_contents($manafestfile);
-			$tmpdata = unserialize($manifestdata);
-			$meta = [
-				'date' => $tmpdata['ctime'],
-				'backupInfo' => [
-					'backup_name' => $tmpdata['name'],
-					'backup_description' => _("Legacy Restore"),
-				],
-				'manifest' => $tmpdata,
-			];
+			$tmpdata = safe_unserialize($manifestdata);
+			if (is_array($tmpdata)) {
+				$meta = [
+					'date' => $tmpdata['ctime'],
+					'backupInfo' => [
+						'backup_name' => $tmpdata['name'],
+						'backup_description' => _("Legacy Restore"),
+					],
+					'manifest' => $tmpdata,
+				];
+			}
 		}
 
 		$tar->close();

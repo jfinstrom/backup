@@ -282,7 +282,17 @@ if(isset($vars['astdb']) && $vars['astdb']) {
 		if (is_file($vars['data'])) {
 			$vars['data'] = file_get_contents($vars['data']);
 		}
-		astdb_put(unserialize($vars['data']), array('RINGGROUP', 'BLKVM', 'FM', 'dundi'));
+		if (!function_exists('FreePBX\\modules\\Backup\\Json\\safe_unserialize')) {
+			$helper = dirname(__DIR__) . '/Json/json_decode.php';
+			if (!file_exists($helper) && isset($amp_conf['AMPWEBROOT'])) {
+				$helper = $amp_conf['AMPWEBROOT'] . '/admin/modules/backup/Json/json_decode.php';
+			}
+			if (file_exists($helper)) {
+				include_once $helper;
+			}
+		}
+		$astdb = \FreePBX\modules\Backup\Json\safe_unserialize($vars['data']);
+		astdb_put(is_array($astdb) ? $astdb : array(), array('RINGGROUP', 'BLKVM', 'FM', 'dundi'));
 	}
 }
 if(!$optsgood){

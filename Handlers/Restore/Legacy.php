@@ -8,6 +8,7 @@ use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use PDO;
 use FreePBX\modules\Backup\Handlers\FreePBXModule;
+use function FreePBX\modules\Backup\Json\safe_unserialize;
 class Legacy extends Common {
 	private $data;
 	private $inMemory = true; //use in memory sqlite (much faster)
@@ -32,10 +33,7 @@ class Legacy extends Common {
 		if(file_exists($this->tmp . '/manifest')){
 			$this->log(_("Loading manifest to memory"));
 			$manifestdata = file_get_contents($this->tmp.'/manifest');
-			$tmpdata = json_decode($manifestdata, true);
-			if ($tmpdata === null || json_last_error() !== JSON_ERROR_NONE || !is_array($tmpdata)) {
-				$tmpdata = unserialize($manifestdata, ['allowed_classes' => false]);
-			}
+			$tmpdata = safe_unserialize($manifestdata);
 			if (!is_array($tmpdata)) {
 				$this->log(_("Restore process failed due to corrupted manifest file present in provided backup file. Please ensure your backup file is proper or regenerate the new backup file to proceed further."),'ERROR');
 				exit(1);
@@ -45,10 +43,7 @@ class Legacy extends Common {
 		if(file_exists($this->tmp . '/astdb')){
 			$this->log(_("Loading astdb to memory"));
 			$astdbdata = file_get_contents($this->tmp.'/astdb');
-			$tmpdata = json_decode($astdbdata, true);
-			if ($tmpdata === null || json_last_error() !== JSON_ERROR_NONE || !is_array($tmpdata)) {
-				$tmpdata = unserialize($astdbdata, ['allowed_classes' => false]);
-			}	
+			$tmpdata = safe_unserialize($astdbdata);
 			$this->data['astdb'] = is_array($tmpdata) ? $tmpdata : [];
 		}
 	}
